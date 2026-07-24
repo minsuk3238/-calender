@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../config/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 
 const EventContext = createContext();
 
@@ -9,52 +11,57 @@ export const MOCK_USERS = [
   { id: 'u4', name: '이소희', color: '#8b5cf6' }
 ];
 
-const INITIAL_EVENTS = [
-  {
-    id: 'e1',
-    title: '프로젝트 킥오프',
-    start: new Date(new Date().setHours(10, 0, 0, 0)),
-    end: new Date(new Date().setHours(11, 30, 0, 0)),
-    userId: 'u1',
-    allDay: false,
-  },
-];
-
-export const EventProvider = ({ children }) => {
+export const EventProvider = ({ children, user }) => {
+  // 사용자의 이메일 기반으로 currentUser 매핑 (또는 기본값 u1)
   const [currentUser, setCurrentUser] = useState(MOCK_USERS[0]);
   const [visibleUsers, setVisibleUsers] = useState(MOCK_USERS.map(u => u.id));
-  const [events, setEvents] = useState(() => {
-    const saved = localStorage.getItem('team_calendar_events');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Convert string dates back to Date objects
-        return parsed.map(e => ({
-          ...e,
-          start: new Date(e.start),
-          end: new Date(e.end)
-        }));
-      } catch (e) {
-        return INITIAL_EVENTS;
-      }
-    }
-    return INITIAL_EVENTS;
-  });
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('team_calendar_events', JSON.stringify(events));
-  }, [events]);
+    // Firestore events 컬렉션 구독
+    const unsubscribe = onSnapshot(collection(db, 'events'), (snapshot) => {
+      const loadedEvents = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          start: data.start.toDate(),
+          end: data.end.toDate(),
+        };
+      });
+      setEvents(loadedEvents);
+      setLoadingEvents(false);
+    });
 
-  const addEvent = (event) => {
-    setEvents([...events, { ...event, id: Date.now().toString() }]);
+    return () => unsubscribe();
+  }, []);
+
+  const addEvent = async (eventData) => {
+    try {
+      await addDoc(collection(db, 'events'), eventData);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
   };
 
-  const updateEvent = (updatedEvent) => {
-    setEvents(events.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+  const updateEvent = async (updatedEvent) => {
+    try {
+      const eventRef = doc(db, 'events', updatedEvent.id);
+      // id 필드는 Firestore 문서 ID이므로 업데이트 데이터에서 제외
+      const { id, ...dataToUpdate } = updatedEvent;
+      await updateDoc(eventRef, dataToUpdate);
+    } catch (e) {
+      console.error("Error updating document: ", e);
+    }
   };
 
-  const deleteEvent = (eventId) => {
-    setEvents(events.filter(e => e.id !== eventId));
+  const deleteEvent = async (eventId) => {
+    try {
+      await deleteDoc(doc(db, 'events', eventId));
+    } catch (e) {
+      console.error("Error deleting document: ", e);
+    }
   };
 
   const getUserById = (id) => MOCK_USERS.find(u => u.id === id);
@@ -78,7 +85,8 @@ export const EventProvider = ({ children }) => {
       getUserById,
       users: MOCK_USERS,
       visibleUsers,
-      toggleUserVisibility
+      toggleUserVisibility,
+      loadingEvents
     }}>
       {children}
     </EventContext.Provider>

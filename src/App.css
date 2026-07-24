@@ -144,6 +144,121 @@
   border-radius: 4px;
 }
 
+/* Header updates */
+.app-header {
+  justify-content: space-between;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.user-email {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+.logout-btn:hover {
+  background-color: #f1f5f9;
+}
+
+/* Login Styles */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--bg-color);
+}
+.login-box {
+  background: var(--panel-bg);
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+}
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.login-header h2 {
+  margin: 1rem 0 0.5rem 0;
+  color: var(--text-primary);
+}
+.login-header p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 0;
+}
+.login-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.login-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.login-form input {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  outline: none;
+}
+.login-form input:focus {
+  border-color: var(--primary);
+}
+.btn-primary {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+.login-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+.text-btn {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.text-btn:hover {
+  text-decoration: underline;
+}
+.error-message {
+  background-color: #fef2f2;
+  color: var(--danger);
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
