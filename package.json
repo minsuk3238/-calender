@@ -12,7 +12,7 @@
     "electron:start": "concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "cap:sync": "npm run build && npx cap sync android",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package || echo 'patch-package failed, continuing...'"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
