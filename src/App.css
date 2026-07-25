@@ -529,3 +529,84 @@ textarea:focus {
   color: white;
   border-color: var(--primary);
 }
+
+/* Mobile Responsive UI */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .header-icon {
+    display: none;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 60px;
+    left: -280px; /* Hide off-screen */
+    bottom: 0;
+    width: 280px;
+    z-index: 50;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .app-header {
+    padding: 0 1rem;
+  }
+
+  .user-email {
+    display: none; /* Hide email on small screens to save space */
+  }
+
+  .logout-btn {
+    padding: 0.4rem;
+  }
+  
+  .logout-btn span {
+    display: none;
+  }
+  
+  .calendar-section {
+    padding: 0.5rem !important;
+  }
+}

@@ -7,11 +7,12 @@ import { auth, db } from './config/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import './App.css';
-import { Calendar as CalendarIcon, LogOut } from 'lucide-react';
+import { Calendar as CalendarIcon, LogOut, Menu, X } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -72,22 +73,34 @@ function App() {
         {!isWidget && (
           <header className="app-header">
             <div className="logo">
-              <CalendarIcon size={24} color="var(--primary)" />
+              <button 
+                className="mobile-menu-btn" 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              >
+                {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+              <CalendarIcon size={24} color="var(--primary)" className="header-icon" />
               <h1>TeamCalendar</h1>
             </div>
             <div className="header-right">
               <span className="user-email">{user.email}</span>
               <button className="logout-btn" onClick={() => signOut(auth)}>
-                <LogOut size={16} /> 로그아웃
+                <LogOut size={16} /> <span>로그아웃</span>
               </button>
             </div>
           </header>
         )}
         <main className="app-content">
           {!isWidget && (
-            <aside className="sidebar">
-              <Sidebar />
-            </aside>
+            <>
+              <div 
+                className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
+                onClick={() => setIsSidebarOpen(false)}
+              ></div>
+              <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <Sidebar />
+              </aside>
+            </>
           )}
           <section className="calendar-section" style={{ padding: isWidget ? '0.5rem' : '1.5rem', background: isWidget ? 'transparent' : 'var(--bg-color)' }}>
             <CalendarView />
