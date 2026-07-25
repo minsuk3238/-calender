@@ -5,29 +5,33 @@ import Login from './components/Login';
 import SearchModal from './components/SearchModal';
 import DailyNoteModal from './components/DailyNoteModal';
 import TeamModal from './components/TeamModal';
+import WidgetGuideModal from './components/WidgetGuideModal';
 import { EventProvider, useEvents } from './context/EventContext';
 import { exportEventsToCSV } from './utils/exportUtils';
 import { auth, db } from './config/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import './App.css';
-import { Calendar as CalendarIcon, LogOut, Menu, X, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, LogOut, Menu, X, CheckCircle2, RefreshCw, Layout, HelpCircle, ExternalLink } from 'lucide-react';
 
 function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
   const { events, googleEvents, calendars, isSyncing } = useEvents();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDailyNoteOpen, setIsDailyNoteOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [isWidgetGuideOpen, setIsWidgetGuideOpen] = useState(false);
 
   const handleExportCSV = () => {
     const allDisplayEvents = [...(events || []), ...(googleEvents || [])];
     exportEventsToCSV(allDisplayEvents, calendars);
   };
 
+  const widgetUrl = `${window.location.origin}/?mode=widget`;
+
   return (
     <div className={`app-container ${isWidget ? 'widget-mode' : ''}`}>
       {!isWidget && (
-        <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem' }}>
+        <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button 
               className="mobile-menu-btn" 
@@ -56,8 +60,54 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
             </div>
           </div>
 
-          <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span className="user-email" style={{ fontSize: '0.875rem', color: '#4b5563' }}>{user.email}</span>
+          <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Widget Mode Shortcut Button */}
+            <a 
+              href={widgetUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#f8fafc',
+                color: '#334155',
+                fontSize: '0.85rem',
+                fontWeight: '500',
+                textDecoration: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <Layout size={15} color="#3b82f6" />
+              <span>위젯 모드</span>
+              <ExternalLink size={12} color="#64748b" />
+            </a>
+
+            {/* Widget Guide Button */}
+            <button
+              onClick={() => setIsWidgetGuideOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#fff',
+                color: '#334155',
+                fontSize: '0.85rem',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              <HelpCircle size={15} color="#f59e0b" />
+              <span>위젯 안내</span>
+            </button>
+
+            <span className="user-email" style={{ fontSize: '0.875rem', color: '#4b5563', marginLeft: '0.5rem' }}>{user.email}</span>
             <button className="logout-btn" onClick={() => signOut(auth)}>
               <LogOut size={16} /> <span>로그아웃</span>
             </button>
@@ -109,6 +159,11 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
       <TeamModal 
         isOpen={isTeamModalOpen}
         onClose={() => setIsTeamModalOpen(false)}
+      />
+
+      <WidgetGuideModal
+        isOpen={isWidgetGuideOpen}
+        onClose={() => setIsWidgetGuideOpen(false)}
       />
     </div>
   );
