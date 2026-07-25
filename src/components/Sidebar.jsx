@@ -8,7 +8,7 @@ import { collection, addDoc } from 'firebase/firestore';
 export default function Sidebar() {
   const { 
     calendars, visibleCalendars, toggleCalendarVisibility, addCalendar, currentUser,
-    invitations, acceptInvitation, declineInvitation 
+    invitations, acceptInvitation, declineInvitation, syncGoogleCalendar
   } = useEvents();
   
   const [isAdding, setIsAdding] = useState(false);
@@ -55,7 +55,8 @@ export default function Sidebar() {
         }
       }
       
-      alert("구글 캘린더 연동 성공! 토큰: " + (accessToken ? "있음" : "없음"));
+      alert("구글 캘린더 권한 연동 완료! 동기화를 시작합니다.");
+      await syncGoogleCalendar();
     } catch (error) {
       console.error(error);
       alert("연동 실패: " + error.message);

@@ -23,7 +23,7 @@ const localizer = dateFnsLocalizer({
 });
 
 export default function CalendarView() {
-  const { events, calendars, visibleCalendars, updateEvent } = useEvents();
+  const { events, googleEvents, calendars, visibleCalendars, updateEvent } = useEvents();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -48,7 +48,7 @@ export default function CalendarView() {
   }, []);
 
   const filteredEvents = events.filter(e => visibleCalendars.includes(e.calendarId));
-  const displayEvents = [...filteredEvents, ...holidays];
+  const displayEvents = [...filteredEvents, ...holidays, ...(googleEvents || [])];
 
   const handleSelectSlot = (slotInfo) => {
     setSelectedDate(slotInfo.start);
@@ -57,19 +57,19 @@ export default function CalendarView() {
   };
 
   const handleSelectEvent = (event) => {
-    if (event.isHoliday) return;
+    if (event.isHoliday || event.isGoogle) return;
     setEditingEvent(event);
     setSelectedDate(event.start);
     setModalOpen(true);
   };
 
   const handleEventDrop = ({ event, start, end, isAllDay: droppedOnAllDaySlot }) => {
-    if (event.isHoliday) return;
+    if (event.isHoliday || event.isGoogle) return;
     updateEvent({ ...event, start, end, allDay: droppedOnAllDaySlot });
   };
 
   const handleEventResize = ({ event, start, end }) => {
-    if (event.isHoliday) return;
+    if (event.isHoliday || event.isGoogle) return;
     updateEvent({ ...event, start, end });
   };
 
@@ -82,6 +82,19 @@ export default function CalendarView() {
           opacity: 0.9,
           color: 'white',
           border: '0px',
+          display: 'block'
+        }
+      };
+    }
+
+    if (event.isGoogle) {
+      return {
+        style: {
+          backgroundColor: event.color,
+          borderRadius: '4px',
+          opacity: 0.9,
+          color: 'white',
+          border: '1px solid #c5221f',
           display: 'block'
         }
       };

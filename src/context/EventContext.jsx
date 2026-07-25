@@ -10,6 +10,7 @@ export const EventProvider = ({ children, user }) => {
   const [calendars, setCalendars] = useState([]);
   const [visibleCalendars, setVisibleCalendars] = useState([]);
   const [events, setEvents] = useState([]);
+  const [googleEvents, setGoogleEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [invitations, setInvitations] = useState([]);
 
@@ -101,6 +102,51 @@ export const EventProvider = ({ children, user }) => {
 
     return () => unsubscribe();
   }, []);
+
+  const syncGoogleCalendar = async () => {
+    try {
+      const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+      const googleUser = await GoogleAuth.refresh();
+      const token = googleUser.authentication.accessToken;
+      
+      if (!token) return;
+
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${oneYearAgo.toISOString()}&singleEvents=true&orderBy=startTime`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Google Calendar');
+      }
+      
+      const data = await response.json();
+      if (data.items) {
+        const gEvents = data.items.map(item => ({
+          id: item.id,
+          title: item.summary || '제목 없음',
+          start: new Date(item.start.dateTime || item.start.date),
+          end: new Date(item.end.dateTime || item.end.date),
+          isGoogle: true,
+          color: '#ea4335', // Google Red
+          isCompleted: false
+        }));
+        setGoogleEvents(gEvents);
+      }
+    } catch (e) {
+      console.log("Silent fail for Google sync: ", e);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      syncGoogleCalendar();
+    }
+  }, [user]);
 
   // Notification checker
   useEffect(() => {
@@ -220,6 +266,8 @@ export const EventProvider = ({ children, user }) => {
   return (
     <EventContext.Provider value={{
       events,
+      googleEvents,
+      syncGoogleCalendar,
       addEvent,
       updateEvent,
       deleteEvent,
