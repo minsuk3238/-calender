@@ -49,8 +49,8 @@ export default function Sidebar() {
         // 이미 연동된 구글 계정일 수 있으므로 linkWithCredential 시도
         await linkWithCredential(auth.currentUser, credential);
       } catch (linkError) {
-        // 이미 연동되어 있는 경우(auth/credential-already-in-use)는 에러를 무시합니다.
-        if (linkError.code !== 'auth/credential-already-in-use') {
+        // 이미 다른 계정에 연동되었거나 현재 계정에 연동된 상태라면 에러를 무시합니다.
+        if (linkError.code !== 'auth/credential-already-in-use' && linkError.code !== 'auth/provider-already-linked') {
           throw linkError;
         }
       }
