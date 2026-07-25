@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useEvents } from '../context/EventContext';
 import { Plus, Check, Link as LinkIcon, Users, Check as CheckIcon, X as XIcon } from 'lucide-react';
 import { auth, googleProvider, db } from '../config/firebase';
-import { linkWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { linkWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { collection, addDoc } from 'firebase/firestore';
 
 export default function Sidebar() {
@@ -35,10 +35,27 @@ export default function Sidebar() {
   const handleLinkGoogle = async () => {
     try {
       if (!auth.currentUser) return;
-      const result = await linkWithPopup(auth.currentUser, googleProvider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      const token = credential.accessToken;
-      alert("구글 계정 연동 성공! 토큰: " + (token ? "있음" : "없음"));
+      
+      // Capacitor 네이티브 구글 로그인을 호출하여 권한을 얻습니다.
+      const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+      const googleUser = await GoogleAuth.signIn();
+      
+      const idToken = googleUser.authentication.idToken;
+      const accessToken = googleUser.authentication.accessToken;
+      
+      const credential = GoogleAuthProvider.credential(idToken);
+      
+      try {
+        // 이미 연동된 구글 계정일 수 있으므로 linkWithCredential 시도
+        await linkWithCredential(auth.currentUser, credential);
+      } catch (linkError) {
+        // 이미 연동되어 있는 경우(auth/credential-already-in-use)는 에러를 무시합니다.
+        if (linkError.code !== 'auth/credential-already-in-use') {
+          throw linkError;
+        }
+      }
+      
+      alert("구글 캘린더 연동 성공! 토큰: " + (accessToken ? "있음" : "없음"));
     } catch (error) {
       console.error(error);
       alert("연동 실패: " + error.message);
