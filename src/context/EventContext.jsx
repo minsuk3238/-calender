@@ -13,6 +13,38 @@ export const EventProvider = ({ children, user }) => {
   const [googleEvents, setGoogleEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [invitations, setInvitations] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [dailyNotes, setDailyNotes] = useState({});
+
+  // Load daily notes from Firestore
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = onSnapshot(collection(db, 'dailyNotes'), (snapshot) => {
+      const notesMap = {};
+      snapshot.docs.forEach(docSnap => {
+        notesMap[docSnap.id] = docSnap.data().content || '';
+      });
+      setDailyNotes(notesMap);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const saveDailyNote = async (dateStr, content) => {
+    if (!dateStr) return;
+    setIsSyncing(true);
+    try {
+      const { setDoc, doc: firestoreDoc } = await import('firebase/firestore');
+      await setDoc(firestoreDoc(db, 'dailyNotes', dateStr), {
+        content,
+        updatedAt: new Date(),
+        updatedBy: user.email
+      });
+    } catch (e) {
+      console.error("Error saving daily note:", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Load calendars (owned and shared)
   useEffect(() => {
@@ -170,36 +202,45 @@ export const EventProvider = ({ children, user }) => {
   }, [events, user]);
 
   const addEvent = async (eventData) => {
+    setIsSyncing(true);
     try {
-      // Ensure we have a default calendarId if none is provided
       if (!eventData.calendarId && calendars.length > 0) {
         eventData.calendarId = calendars[0].id;
       }
       await addDoc(collection(db, 'events'), eventData);
     } catch (e) {
       console.error("Error adding document: ", e);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const updateEvent = async (updatedEvent) => {
+    setIsSyncing(true);
     try {
       const eventRef = doc(db, 'events', updatedEvent.id);
       const { id, ...dataToUpdate } = updatedEvent;
       await updateDoc(eventRef, dataToUpdate);
     } catch (e) {
       console.error("Error updating document: ", e);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const deleteEvent = async (eventId) => {
+    setIsSyncing(true);
     try {
       await deleteDoc(doc(db, 'events', eventId));
     } catch (e) {
       console.error("Error deleting document: ", e);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const addCalendar = async (calendarData) => {
+    setIsSyncing(true);
     try {
       await addDoc(collection(db, 'calendars'), {
         ...calendarData,
@@ -207,6 +248,8 @@ export const EventProvider = ({ children, user }) => {
       });
     } catch (e) {
       console.error("Error adding calendar: ", e);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -227,26 +270,15 @@ export const EventProvider = ({ children, user }) => {
 
   const acceptInvitation = async (invitation) => {
     try {
-      // Add user to calendar's sharedWithEmails and sharedWithRoles
       const calRef = doc(db, 'calendars', invitation.calendarId);
-      // We assume sharedWithEmails is an array and sharedWithRoles is a map/object
-      // Since arrayUnion isn't directly imported, we can just fetch and update or use arrayUnion
-      // but it's simpler to just update the invitation status and let a cloud function do it,
-      // or we can do it here directly if we import arrayUnion.
-      // Let's do it directly: we need to update the calendar document.
-      // For simplicity in MVP, we just update invitation status to 'accepted'.
       const invRef = doc(db, 'invitations', invitation.id);
       await updateDoc(invRef, { status: 'accepted' });
-      // To properly share, the user should be in the calendar document.
-      // In a real app we'd use arrayUnion. Here we will do a fast read-modify-write if we have the calendar.
       const cal = calendars.find(c => c.id === invitation.calendarId);
       if (cal) {
         const emails = cal.sharedWithEmails || [];
-        const roles = cal.sharedWithRoles || {};
-        if (!emails.includes(currentUser.email)) {
+        if (!emails.includes(user.email)) {
           await updateDoc(calRef, {
-            sharedWithEmails: [...emails, currentUser.email],
-            [`sharedWithRoles.${currentUser.email.replace(/\./g, ',')}`]: invitation.role
+            sharedWithEmails: [...emails, user.email]
           });
         }
       }
@@ -280,7 +312,10 @@ export const EventProvider = ({ children, user }) => {
       currentUser: user,
       invitations,
       acceptInvitation,
-      declineInvitation
+      declineInvitation,
+      isSyncing,
+      dailyNotes,
+      saveDailyNote
     }}>
       {children}
     </EventContext.Provider>
