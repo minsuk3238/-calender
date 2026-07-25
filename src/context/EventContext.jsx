@@ -15,6 +15,78 @@ export const EventProvider = ({ children, user }) => {
   const [invitations, setInvitations] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [dailyNotes, setDailyNotes] = useState({});
+  const [teams, setTeams] = useState([]);
+  const [currentTeam, setCurrentTeam] = useState(null);
+
+  // Load teams owned or joined
+  useEffect(() => {
+    if (!user?.uid) return;
+    const q = query(collection(db, 'teams'), where('memberEmails', 'array-contains', user.email || ''));
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const loadedTeams = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (loadedTeams.length === 0) {
+        // Auto create default workspace
+        const defaultTeam = {
+          name: '내 팀',
+          ownerId: user.uid,
+          ownerEmail: user.email,
+          memberEmails: [user.email],
+          createdAt: new Date()
+        };
+        const docRef = await addDoc(collection(db, 'teams'), defaultTeam);
+        const created = { id: docRef.id, ...defaultTeam };
+        setTeams([created]);
+        setCurrentTeam(created);
+      } else {
+        setTeams(loadedTeams);
+        if (!currentTeam) setCurrentTeam(loadedTeams[0]);
+      }
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const createTeam = async (name) => {
+    if (!user) return;
+    setIsSyncing(true);
+    try {
+      const newTeam = {
+        name,
+        ownerId: user.uid,
+        ownerEmail: user.email,
+        memberEmails: [user.email],
+        createdAt: new Date()
+      };
+      const docRef = await addDoc(collection(db, 'teams'), newTeam);
+      const created = { id: docRef.id, ...newTeam };
+      setTeams(prev => [...prev, created]);
+      setCurrentTeam(created);
+    } catch (e) {
+      console.error("Error creating team:", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const inviteTeamMember = async (teamId, email) => {
+    if (!teamId || !email) return;
+    setIsSyncing(true);
+    try {
+      const targetTeam = teams.find(t => t.id === teamId);
+      if (targetTeam) {
+        const members = targetTeam.memberEmails || [];
+        if (!members.includes(email)) {
+          const teamRef = doc(db, 'teams', teamId);
+          await updateDoc(teamRef, {
+            memberEmails: [...members, email]
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error inviting team member:", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Load daily notes from Firestore
   useEffect(() => {
@@ -321,7 +393,12 @@ export const EventProvider = ({ children, user }) => {
       declineInvitation,
       isSyncing,
       dailyNotes,
-      saveDailyNote
+      saveDailyNote,
+      teams,
+      currentTeam,
+      setCurrentTeam,
+      createTeam,
+      inviteTeamMember
     }}>
       {children}
     </EventContext.Provider>

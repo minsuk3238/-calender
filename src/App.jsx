@@ -4,19 +4,20 @@ import Sidebar from './components/Sidebar';
 import Login from './components/Login';
 import SearchModal from './components/SearchModal';
 import DailyNoteModal from './components/DailyNoteModal';
+import TeamModal from './components/TeamModal';
 import { EventProvider, useEvents } from './context/EventContext';
 import { exportEventsToCSV } from './utils/exportUtils';
 import { auth, db } from './config/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import './App.css';
-import { Calendar as CalendarIcon, LogOut, Menu, X, Search, FileDown, FileText, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, LogOut, Menu, X, CheckCircle2, RefreshCw } from 'lucide-react';
 
 function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
   const { events, googleEvents, calendars, isSyncing } = useEvents();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDailyNoteOpen, setIsDailyNoteOpen] = useState(false);
-  const [selectedEventForEdit, setSelectedEventForEdit] = useState(null);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
 
   const handleExportCSV = () => {
     const allDisplayEvents = [...(events || []), ...(googleEvents || [])];
@@ -26,7 +27,7 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
   return (
     <div className={`app-container ${isWidget ? 'widget-mode' : ''}`}>
       {!isWidget && (
-        <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', padding: '0.75rem 1.5rem' }}>
+        <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem' }}>
           <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button 
               className="mobile-menu-btn" 
@@ -55,69 +56,8 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
             </div>
           </div>
 
-          <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {/* ⌘K Search Button */}
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                border: '1px solid #d1d5db',
-                backgroundColor: '#f9fafb',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                color: '#374151'
-              }}
-            >
-              <Search size={15} />
-              <span>검색</span>
-              <kbd style={{ backgroundColor: '#e5e7eb', padding: '1px 5px', borderRadius: '4px', fontSize: '0.75rem' }}>⌘K</kbd>
-            </button>
-
-            {/* Daily Note Button */}
-            <button 
-              onClick={() => setIsDailyNoteOpen(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                border: '1px solid #d1d5db',
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                color: '#374151'
-              }}
-            >
-              <FileText size={15} color="#3b82f6" />
-              <span>일자별 특이사항</span>
-            </button>
-
-            {/* Excel Export Button */}
-            <button 
-              onClick={handleExportCSV}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                border: '1px solid #d1d5db',
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                color: '#15803d'
-              }}
-            >
-              <FileDown size={15} color="#15803d" />
-              <span>Excel 다운로드</span>
-            </button>
-
-            <span className="user-email" style={{ fontSize: '0.85rem', color: '#6b7280', marginLeft: '0.5rem' }}>{user.email}</span>
+          <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span className="user-email" style={{ fontSize: '0.875rem', color: '#4b5563' }}>{user.email}</span>
             <button className="logout-btn" onClick={() => signOut(auth)}>
               <LogOut size={16} /> <span>로그아웃</span>
             </button>
@@ -133,7 +73,12 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
               onClick={() => setIsSidebarOpen(false)}
             ></div>
             <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-              <Sidebar />
+              <Sidebar 
+                onOpenSearch={() => setIsSearchOpen(true)}
+                onOpenDailyNote={() => setIsDailyNoteOpen(true)}
+                onExportCSV={handleExportCSV}
+                onOpenTeamModal={() => setIsTeamModalOpen(true)}
+              />
             </aside>
           </>
         )}
@@ -154,14 +99,16 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
         }}
         events={[...(events || []), ...(googleEvents || [])]}
         calendars={calendars}
-        onSelectEvent={(event) => {
-          // Open edit modal if needed
-        }}
       />
 
       <DailyNoteModal 
         isOpen={isDailyNoteOpen}
         onClose={() => setIsDailyNoteOpen(false)}
+      />
+
+      <TeamModal 
+        isOpen={isTeamModalOpen}
+        onClose={() => setIsTeamModalOpen(false)}
       />
     </div>
   );
@@ -228,4 +175,3 @@ function App() {
 }
 
 export default App;
-

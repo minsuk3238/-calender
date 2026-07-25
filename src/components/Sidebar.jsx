@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
 import { useEvents } from '../context/EventContext';
-import { Plus, Check, Link as LinkIcon, Users, Check as CheckIcon, X as XIcon } from 'lucide-react';
+import { Plus, Check, Link as LinkIcon, Users, UserPlus, Search, FileText, FileDown, Eye, EyeOff, Calendar as CalendarIcon } from 'lucide-react';
 import { auth, googleProvider, db } from '../config/firebase';
 import { linkWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { collection, addDoc } from 'firebase/firestore';
 
-export default function Sidebar() {
+export default function Sidebar({ onOpenSearch, onOpenDailyNote, onExportCSV, onOpenTeamModal }) {
   const { 
     calendars, visibleCalendars, toggleCalendarVisibility, addCalendar, currentUser,
-    invitations, acceptInvitation, declineInvitation, syncGoogleCalendar
+    invitations, acceptInvitation, declineInvitation, syncGoogleCalendar,
+    teams, currentTeam, setCurrentTeam
   } = useEvents();
   
   const [isAdding, setIsAdding] = useState(false);
   const [newCalName, setNewCalName] = useState('');
-  
-  const [invitingCalId, setInvitingCalId] = useState(null);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('viewer');
-  
+  const [hiddenMembers, setHiddenMembers] = useState([]);
+
   const handleAddCalendar = () => {
     if (!newCalName.trim()) return;
     addCalendar({
@@ -35,7 +33,6 @@ export default function Sidebar() {
   const handleLinkGoogle = async () => {
     try {
       if (!auth.currentUser) return;
-      
       let accessToken = null;
 
       const { Capacitor } = await import('@capacitor/core');
@@ -54,7 +51,6 @@ export default function Sidebar() {
           }
         }
       } else {
-        // Web Browser Platform Flow
         const { signInWithPopup } = await import('firebase/auth');
         const result = await signInWithPopup(auth, googleProvider);
         const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -73,41 +69,180 @@ export default function Sidebar() {
     }
   };
 
-  const handleSendInvite = async (cal) => {
-    if (!inviteEmail.trim()) return;
-    try {
-      await addDoc(collection(db, 'invitations'), {
-        calendarId: cal.id,
-        calendarName: cal.name,
-        inviterEmail: currentUser.email,
-        inviteeEmail: inviteEmail,
-        role: inviteRole,
-        status: 'pending'
-      });
-      setInvitingCalId(null);
-      setInviteEmail('');
-      alert('초대장을 보냈습니다.');
-    } catch (e) {
-      console.error(e);
-      alert('초대 실패: ' + e.message);
-    }
+  const toggleMemberVisibility = (email) => {
+    setHiddenMembers(prev => 
+      prev.includes(email) ? prev.filter(e => e !== email) : [...prev, email]
+    );
   };
 
+  const memberEmails = currentTeam?.memberEmails || [currentUser?.email || ''];
+
   return (
-    <div className="sidebar-content">
+    <div className="sidebar-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
+      {/* Workspace / Team Profile Card */}
+      <div style={{
+        backgroundColor: '#f1f5f9',
+        padding: '0.875rem',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>
+            <Users size={18} color="#3b82f6" />
+            <span>{currentTeam?.name || '내 팀'}</span>
+          </div>
+          <button 
+            onClick={onOpenTeamModal}
+            style={{
+              padding: '0.25rem 0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#fff',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              color: '#334155',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem'
+            }}
+          >
+            <UserPlus size={13} />
+            <span>팀 관리</span>
+          </button>
+        </div>
+        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+          소속 팀원 {memberEmails.length}명
+        </div>
+      </div>
+
+      {/* Dashboard Menu Section */}
+      <div className="sidebar-section">
+        <h4 style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+          대시보드 메뉴
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <button 
+            onClick={onOpenSearch}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              color: '#334155',
+              textAlign: 'left'
+            }}
+          >
+            <Search size={16} color="#3b82f6" />
+            <span style={{ flex: 1 }}>일정 검색</span>
+            <kbd style={{ backgroundColor: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontSize: '0.7rem', color: '#64748b' }}>⌘K</kbd>
+          </button>
+
+          <button 
+            onClick={onOpenDailyNote}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              color: '#334155',
+              textAlign: 'left'
+            }}
+          >
+            <FileText size={16} color="#10b981" />
+            <span>일자별 특이사항</span>
+          </button>
+
+          <button 
+            onClick={onExportCSV}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              color: '#334155',
+              textAlign: 'left'
+            }}
+          >
+            <FileDown size={16} color="#059669" />
+            <span>Excel 다운로드</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Team Members List Section */}
+      <div className="sidebar-section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <h4 style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', margin: 0, fontWeight: 'bold' }}>
+            멤버 캘린더
+          </h4>
+          <button onClick={onOpenTeamModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontSize: '0.75rem', padding: 0 }}>
+            + 초대
+          </button>
+        </div>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          {memberEmails.map((email, idx) => {
+            const isHidden = hiddenMembers.includes(email);
+            const name = email.split('@')[0];
+            return (
+              <li key={email} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justify: 'space-between',
+                padding: '0.4rem 0.5rem',
+                borderRadius: '6px',
+                backgroundColor: isHidden ? '#f8fafc' : '#f1f5f9',
+                opacity: isHidden ? 0.6 : 1,
+                fontSize: '0.85rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: idx === 0 ? '#3b82f6' : (idx === 1 ? '#10b981' : '#f59e0b')
+                  }} />
+                  <span style={{ color: '#334155', fontWeight: '500' }}>{name}</span>
+                </div>
+                <button 
+                  onClick={() => toggleMemberVisibility(email)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: isHidden ? '#94a3b8' : '#3b82f6', padding: '2px' }}
+                  title={isHidden ? '일정 표시하기' : '일정 숨기기'}
+                >
+                  {isHidden ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Invitations Section if any */}
       {invitations && invitations.length > 0 && (
-        <div className="sidebar-section" style={{ marginBottom: '1.5rem', backgroundColor: '#fef3c7', padding: '1rem', borderRadius: '8px' }}>
-          <h3 style={{ color: '#d97706', marginTop: 0 }}>받은 초대장 ({invitations.length})</h3>
+        <div className="sidebar-section" style={{ backgroundColor: '#fef3c7', padding: '0.75rem', borderRadius: '8px' }}>
+          <h4 style={{ color: '#d97706', marginTop: 0, fontSize: '0.85rem' }}>받은 초대장 ({invitations.length})</h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {invitations.map(inv => (
-              <li key={inv.id} style={{ fontSize: '0.875rem', backgroundColor: '#fff', padding: '0.5rem', borderRadius: '4px' }}>
+              <li key={inv.id} style={{ fontSize: '0.8rem', backgroundColor: '#fff', padding: '0.5rem', borderRadius: '4px' }}>
                 <div style={{ fontWeight: 'bold' }}>{inv.calendarName}</div>
-                <div style={{ color: '#666', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
-                  from: {inv.inviterEmail} ({inv.role === 'editor' ? '수정 가능' : '읽기 전용'})
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => acceptInvitation(inv)} className="btn-small" style={{ flex: 1, backgroundColor: '#10b981' }}>수락</button>
-                  <button onClick={() => declineInvitation(inv.id)} className="btn-small" style={{ flex: 1, backgroundColor: '#ef4444' }}>거절</button>
+                <div style={{ color: '#666', fontSize: '0.75rem', marginBottom: '0.4rem' }}>from: {inv.inviterEmail}</div>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button onClick={() => acceptInvitation(inv)} className="btn-small" style={{ flex: 1, backgroundColor: '#10b981', padding: '0.2rem' }}>수락</button>
+                  <button onClick={() => declineInvitation(inv.id)} className="btn-small" style={{ flex: 1, backgroundColor: '#ef4444', padding: '0.2rem' }}>거절</button>
                 </div>
               </li>
             ))}
@@ -115,64 +250,42 @@ export default function Sidebar() {
         </div>
       )}
 
+      {/* Calendars Section */}
       <div className="sidebar-section">
-        <h3>내 캘린더</h3>
+        <h4 style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+          내 캘린더
+        </h4>
         <ul className="calendar-list">
           {calendars.filter(c => c.ownerId === currentUser?.uid).map(cal => {
             const isVisible = visibleCalendars.includes(cal.id);
             return (
-              <li key={cal.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <li key={cal.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0' }}>
+                <div 
+                  className="calendar-item" 
+                  onClick={() => toggleCalendarVisibility(cal.id)}
+                  style={{ flex: 1, padding: '0.25rem 0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
                   <div 
-                    className="calendar-item" 
-                    onClick={() => toggleCalendarVisibility(cal.id)}
-                    style={{ flex: 1, padding: '0.5rem' }}
+                    className="checkbox-icon" 
+                    style={{ 
+                      border: `2px solid ${cal.color}`,
+                      backgroundColor: isVisible ? cal.color : 'transparent',
+                      width: '15px', height: '15px',
+                      borderRadius: '3px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
                   >
-                    <div 
-                      className="checkbox-icon" 
-                      style={{ 
-                        border: `2px solid ${cal.color}`,
-                        backgroundColor: isVisible ? cal.color : 'transparent',
-                        width: '16px', height: '16px'
-                      }}
-                    >
-                      {isVisible && <Check size={12} color="white" />}
-                    </div>
-                    <span className="calendar-name">{cal.name}</span>
+                    {isVisible && <Check size={11} color="white" />}
                   </div>
-                  <button onClick={() => setInvitingCalId(cal.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }} title="팀원 초대">
-                    <Users size={16} />
-                  </button>
+                  <span className="calendar-name" style={{ fontSize: '0.85rem', color: '#334155' }}>{cal.name}</span>
                 </div>
-                
-                {invitingCalId === cal.id && (
-                  <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '6px', fontSize: '0.8rem' }}>
-                    <input 
-                      type="email" 
-                      value={inviteEmail} 
-                      onChange={e => setInviteEmail(e.target.value)} 
-                      placeholder="초대할 이메일" 
-                      style={{ width: '100%', marginBottom: '0.5rem', padding: '0.4rem', border: '1px solid #ccc', borderRadius: '4px' }}
-                    />
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ flex: 1, padding: '0.4rem' }}>
-                        <option value="viewer">읽기 전용</option>
-                        <option value="editor">수정 가능</option>
-                      </select>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => handleSendInvite(cal)} className="btn-small" style={{ flex: 1 }}>보내기</button>
-                      <button onClick={() => setInvitingCalId(null)} className="btn-small btn-cancel" style={{ flex: 1 }}>취소</button>
-                    </div>
-                  </div>
-                )}
               </li>
             );
           })}
         </ul>
         
         {isAdding ? (
-          <div className="add-calendar-form" style={{ marginTop: '1rem' }}>
+          <div className="add-calendar-form" style={{ marginTop: '0.5rem' }}>
             <input 
               type="text" 
               value={newCalName} 
@@ -180,49 +293,24 @@ export default function Sidebar() {
               placeholder="캘린더 이름"
               autoFocus
               onKeyDown={e => e.key === 'Enter' && handleAddCalendar()}
+              style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
             />
-            <div style={{display: 'flex', gap: '0.5rem', marginTop: '0.5rem'}}>
+            <div style={{display: 'flex', gap: '0.5rem', marginTop: '0.4rem'}}>
               <button onClick={handleAddCalendar} className="btn-small">추가</button>
               <button onClick={() => setIsAdding(false)} className="btn-small btn-cancel">취소</button>
             </div>
           </div>
         ) : (
-          <button className="add-calendar-btn" onClick={() => setIsAdding(true)}>
-            <Plus size={16} /> 새 캘린더 추가
+          <button className="add-calendar-btn" onClick={() => setIsAdding(true)} style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+            <Plus size={14} /> 새 캘린더 추가
           </button>
         )}
       </div>
 
-      <div className="sidebar-section" style={{ marginTop: '2rem' }}>
-        <h3>구독/팀 캘린더</h3>
-        <ul className="calendar-list">
-          {calendars.filter(c => c.ownerId !== currentUser?.uid).map(cal => {
-            const isVisible = visibleCalendars.includes(cal.id);
-            return (
-              <li key={cal.id} className="calendar-item" onClick={() => toggleCalendarVisibility(cal.id)}>
-                <div 
-                  className="checkbox-icon" 
-                  style={{ 
-                    border: `2px solid ${cal.color}`,
-                    backgroundColor: isVisible ? cal.color : 'transparent',
-                    width: '16px', height: '16px'
-                  }}
-                >
-                  {isVisible && <Check size={12} color="white" />}
-                </div>
-                <span className="calendar-name">{cal.name}</span>
-              </li>
-            );
-          })}
-        </ul>
-        {calendars.filter(c => c.ownerId !== currentUser?.uid).length === 0 && (
-          <div style={{fontSize: '0.8rem', color: '#888'}}>초대받은 캘린더가 없습니다.</div>
-        )}
-      </div>
-
-      <div className="sidebar-section" style={{ marginTop: 'auto', paddingTop: '2rem' }}>
-        <button className="add-calendar-btn" onClick={handleLinkGoogle} style={{ color: '#ea4335' }}>
-          <LinkIcon size={16} /> 구글 캘린더 연동
+      {/* Bottom Link Google Calendar */}
+      <div className="sidebar-section" style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+        <button className="add-calendar-btn" onClick={handleLinkGoogle} style={{ color: '#ea4335', width: '100%', justifyContent: 'center', fontSize: '0.85rem' }}>
+          <LinkIcon size={15} /> 구글 캘린더 연동
         </button>
       </div>
     </div>
