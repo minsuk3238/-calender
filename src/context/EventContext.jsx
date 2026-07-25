@@ -137,9 +137,15 @@ export const EventProvider = ({ children, user }) => {
 
   const syncGoogleCalendar = async () => {
     try {
-      const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
-      const googleUser = await GoogleAuth.refresh();
-      const token = googleUser.authentication.accessToken;
+      let token = localStorage.getItem('googleAccessToken');
+      if (!token) {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+          const googleUser = await GoogleAuth.refresh();
+          token = googleUser?.authentication?.accessToken;
+        }
+      }
       
       if (!token) return;
 
