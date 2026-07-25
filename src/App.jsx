@@ -6,13 +6,14 @@ import SearchModal from './components/SearchModal';
 import DailyNoteModal from './components/DailyNoteModal';
 import TeamModal from './components/TeamModal';
 import WidgetGuideModal from './components/WidgetGuideModal';
+import AppDownloadModal from './components/AppDownloadModal';
 import { EventProvider, useEvents } from './context/EventContext';
 import { exportEventsToCSV } from './utils/exportUtils';
 import { auth, db } from './config/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import './App.css';
-import { Calendar as CalendarIcon, LogOut, Menu, X, CheckCircle2, RefreshCw, Layout, HelpCircle, ExternalLink } from 'lucide-react';
+import { Calendar as CalendarIcon, LogOut, Menu, X, CheckCircle2, RefreshCw, Layout, HelpCircle, ExternalLink, Download } from 'lucide-react';
 
 function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
   const { events, googleEvents, calendars, isSyncing } = useEvents();
@@ -20,6 +21,7 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
   const [isDailyNoteOpen, setIsDailyNoteOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isWidgetGuideOpen, setIsWidgetGuideOpen] = useState(false);
+  const [isAppDownloadOpen, setIsAppDownloadOpen] = useState(false);
 
   const handleExportCSV = () => {
     const allDisplayEvents = [...(events || []), ...(googleEvents || [])];
@@ -61,6 +63,27 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
           </div>
 
           <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* App Download Button */}
+            <button
+              onClick={() => setIsAppDownloadOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid #10b981',
+                backgroundColor: '#f0fdf4',
+                color: '#15803d',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              <Download size={15} color="#10b981" />
+              <span>어플 다운로드</span>
+            </button>
+
             {/* Widget Mode Shortcut Button */}
             <a 
               href={widgetUrl}
@@ -164,6 +187,11 @@ function MainContent({ user, isSidebarOpen, setIsSidebarOpen, isWidget }) {
       <WidgetGuideModal
         isOpen={isWidgetGuideOpen}
         onClose={() => setIsWidgetGuideOpen(false)}
+      />
+
+      <AppDownloadModal
+        isOpen={isAppDownloadOpen}
+        onClose={() => setIsAppDownloadOpen(false)}
       />
     </div>
   );
