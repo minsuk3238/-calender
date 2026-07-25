@@ -1,0 +1,19 @@
+{
+  "appId": "com.minsuk3238.calendar",
+  "appName": "TeamCalendar",
+  "webDir": "dist",
+  "server": {
+    "allowNavigation": [
+      "*.firebaseapp.com",
+      "*.googleapis.com",
+      "accounts.google.com"
+    ]
+  },
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email", "https://www.googleapis.com/auth/calendar.events"],
+      "serverClientId": "123154076628-oql4c5l6dr9v4d96o2u8f9ujn792nsq1.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
+}

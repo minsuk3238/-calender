@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TeamCalendar</string>
+    <string name="title_activity_main">TeamCalendar</string>
+    <string name="package_name">com.minsuk3238.calendar</string>
+    <string name="custom_url_scheme">com.minsuk3238.calendar</string>
+    <string name="server_client_id">123154076628-oql4c5l6dr9v4d96o2u8f9ujn792nsq1.apps.googleusercontent.com</string>
+</resources>

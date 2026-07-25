@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import Holidays from 'date-holidays';
+
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+
 import { useEvents } from '../context/EventContext';
 import EventModal from './EventModal';
 
@@ -19,12 +23,32 @@ const localizer = dateFnsLocalizer({
 });
 
 export default function CalendarView() {
-  const { events, getUserById, visibleUsers } = useEvents();
+  const { events, calendars, visibleCalendars, updateEvent } = useEvents();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [holidays, setHolidays] = useState([]);
 
-  const filteredEvents = events.filter(e => visibleUsers.includes(e.userId));
+  useEffect(() => {
+    const hd = new Holidays('KR');
+    const currentYear = new Date().getFullYear();
+    const h1 = hd.getHolidays(currentYear - 1);
+    const h2 = hd.getHolidays(currentYear);
+    const h3 = hd.getHolidays(currentYear + 1);
+    
+    const mapped = [...h1, ...h2, ...h3].map(h => ({
+      id: `holiday-${h.date}`,
+      title: h.name,
+      start: new Date(h.date),
+      end: new Date(h.date),
+      allDay: true,
+      isHoliday: true
+    }));
+    setHolidays(mapped);
+  }, []);
+
+  const filteredEvents = events.filter(e => visibleCalendars.includes(e.calendarId));
+  const displayEvents = [...filteredEvents, ...holidays];
 
   const handleSelectSlot = (slotInfo) => {
     setSelectedDate(slotInfo.start);
@@ -33,22 +57,47 @@ export default function CalendarView() {
   };
 
   const handleSelectEvent = (event) => {
+    if (event.isHoliday) return;
     setEditingEvent(event);
     setSelectedDate(event.start);
     setModalOpen(true);
   };
 
+  const handleEventDrop = ({ event, start, end, isAllDay: droppedOnAllDaySlot }) => {
+    if (event.isHoliday) return;
+    updateEvent({ ...event, start, end, allDay: droppedOnAllDaySlot });
+  };
+
+  const handleEventResize = ({ event, start, end }) => {
+    if (event.isHoliday) return;
+    updateEvent({ ...event, start, end });
+  };
+
   const eventPropGetter = (event) => {
-    const user = getUserById(event.userId);
-    const backgroundColor = user ? user.color : '#3174ad';
+    if (event.isHoliday) {
+      return {
+        style: {
+          backgroundColor: '#ef4444',
+          borderRadius: '4px',
+          opacity: 0.9,
+          color: 'white',
+          border: '0px',
+          display: 'block'
+        }
+      };
+    }
+
+    const cal = calendars.find(c => c.id === event.calendarId);
+    const backgroundColor = cal ? cal.color : '#3174ad';
     return {
       style: {
         backgroundColor,
         borderRadius: '4px',
-        opacity: 0.9,
+        opacity: event.isCompleted ? 0.6 : 0.9,
         color: 'white',
         border: '0px',
-        display: 'block'
+        display: 'block',
+        textDecoration: event.isCompleted ? 'line-through' : 'none'
       }
     };
   };
@@ -57,10 +106,10 @@ export default function CalendarView() {
     <div className="calendar-container">
       <Calendar
         localizer={localizer}
-        events={filteredEvents}
+        events={displayEvents}
         startAccessor="start"
         endAccessor="end"
-        style={{ height: '100%' }}
+        style={{ height: 'calc(100vh - 120px)' }}
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
         selectable

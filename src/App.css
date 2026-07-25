@@ -4,6 +4,17 @@
   height: 100vh;
 }
 
+.widget-mode, .widget-mode .calendar-container {
+  background-color: rgba(255, 255, 255, 0.85) !important; /* Slight blur/opacity for widget */
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+}
+
+body {
+  margin: 0;
+  background: transparent !important;
+}
+
 .app-header {
   background-color: var(--panel-bg);
   border-bottom: 1px solid var(--border-color);
@@ -103,13 +114,16 @@
   border-color: var(--primary);
 }
 
-.filter-list {
+.calendar-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
-.filter-item {
+.calendar-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -124,8 +138,50 @@
   user-select: none;
 }
 
-.filter-item:hover {
+.calendar-item:hover {
   background-color: #f1f5f9 !important;
+}
+
+.add-calendar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-top: 0.5rem;
+}
+
+.add-calendar-btn:hover {
+  text-decoration: underline;
+}
+
+.add-calendar-form input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  outline: none;
+  font-size: 0.875rem;
+}
+
+.btn-small {
+  padding: 0.4rem 0.75rem;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.btn-small.btn-cancel {
+  background-color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .hidden-checkbox {
