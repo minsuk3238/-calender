@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { app } from '../config/firebase';
+import { app, googleProvider } from '../config/firebase';
 
 const auth = getAuth(app);
 
@@ -17,13 +18,22 @@ export default function Login({ onLogin }) {
     setError('');
     setLoading(true);
     try {
-      const googleUser = await GoogleAuth.signIn();
-      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-      await signInWithCredential(auth, credential);
-      
-      if (googleUser.authentication.accessToken) {
-        localStorage.setItem('googleAccessToken', googleUser.authentication.accessToken);
+      if (Capacitor.isNativePlatform()) {
+        const googleUser = await GoogleAuth.signIn();
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        await signInWithCredential(auth, credential);
+        
+        if (googleUser.authentication.accessToken) {
+          localStorage.setItem('googleAccessToken', googleUser.authentication.accessToken);
+        }
+      } else {
+        const result = await signInWithPopup(auth, googleProvider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        if (credential?.accessToken) {
+          localStorage.setItem('googleAccessToken', credential.accessToken);
+        }
       }
+      if (onLogin) onLogin();
     } catch (err) {
       console.error(err);
       setError('구글 로그인에 실패했습니다. 다시 시도해 주세요.');
