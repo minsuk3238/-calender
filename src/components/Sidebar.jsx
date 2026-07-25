@@ -36,26 +36,36 @@ export default function Sidebar() {
     try {
       if (!auth.currentUser) return;
       
-      // Capacitor 네이티브 구글 로그인을 호출하여 권한을 얻습니다.
-      const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
-      const googleUser = await GoogleAuth.signIn();
-      
-      const idToken = googleUser.authentication.idToken;
-      const accessToken = googleUser.authentication.accessToken;
-      
-      const credential = GoogleAuthProvider.credential(idToken);
-      
-      try {
-        // 이미 연동된 구글 계정일 수 있으므로 linkWithCredential 시도
-        await linkWithCredential(auth.currentUser, credential);
-      } catch (linkError) {
-        // 이미 다른 계정에 연동되었거나 현재 계정에 연동된 상태라면 에러를 무시합니다.
-        if (linkError.code !== 'auth/credential-already-in-use' && linkError.code !== 'auth/provider-already-linked') {
-          throw linkError;
+      let accessToken = null;
+
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+        const googleUser = await GoogleAuth.signIn();
+        const idToken = googleUser.authentication.idToken;
+        accessToken = googleUser.authentication.accessToken;
+        const credential = GoogleAuthProvider.credential(idToken);
+        
+        try {
+          await linkWithCredential(auth.currentUser, credential);
+        } catch (linkError) {
+          if (linkError.code !== 'auth/credential-already-in-use' && linkError.code !== 'auth/provider-already-linked') {
+            throw linkError;
+          }
         }
+      } else {
+        // Web Browser Platform Flow
+        const { signInWithPopup } = await import('firebase/auth');
+        const result = await signInWithPopup(auth, googleProvider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        accessToken = credential?.accessToken;
       }
       
-      alert("구글 캘린더 권한 연동 완료! 동기화를 시작합니다.");
+      if (accessToken) {
+        localStorage.setItem('googleAccessToken', accessToken);
+      }
+      
+      alert("구글 캘린더 연동이 완료되었습니다! 일정을 불러옵니다.");
       await syncGoogleCalendar();
     } catch (error) {
       console.error(error);
